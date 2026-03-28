@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Type Ahead 👀</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="https://fav.farm/🔥" />
+</head>
+<body>
+  <form class="search-form">
+    <input type="text" id="input-name" class="search" placeholder="City or State">
+    <ul class="suggestions">
+      <li>Filter for a city</li>
+      <li>or a state</li>
+    </ul>
+  </form>
+  <br/>
+  <form class="search-form">
+    <input type="number" id="input-population" class="search" placeholder="Population over input">
+    <ul class="suggestions">
+      <li>Filter for a city</li>
+      <li>with population over given number</li>
+    </ul>
+  </form>
+<script>
+    const endpoint = 'https://gist.githubusercontent.com/Miserlou/c5cd8364bf9b2420bb29/raw/2bf258763cdddd704f8ffd3ea9a3e81d25e2c6f6/cities.json';
+    const cities = [];
+
+    const fetchData = async () => {
+        const res = await fetch(endpoint);
+        const data = await res.json();
+        return data;
+    }
+
+    const loadInitialData = async () => {
+        const data = await fetchData();
+        cities.push(...data);
+    }
+
+    document.addEventListener("DOMContentLoaded", loadInitialData);
+    const searchInputByName = document.getElementById('input-name');
+    const searchInputByPopulation = document.getElementById('input-population');
+    const suggestions = document.querySelectorAll('.suggestions');
+
+    const regexWord = (wordToMatch) => new RegExp(wordToMatch, 'gi');
+
+    const findMatchesByName = (wordToMatch, cities) => {
+      return cities.filter(place => {
+        // here we need to figure out if the city or state matches what was searched
+        const regex = regexWord(wordToMatch);
+        return place.city.match(regex) || place.state.match(regex);
+      });
+    }
+
+    const findMatchesByPopulation = (population, cities) => {
+      return cities.filter(place => {
+        // here we need to figure out if the city has population equal or higher than given population
+        return place.population >= Number(population);
+      });
+    }
+
+    const displayMatchesForCityStateNames = (e) => {
+      const suggestion = suggestions[0];
+      if (e.target.value === '') {
+        suggestion.innerHTML = `
+          <li>Filter for a city</li>
+          <li>with population over given number</li>
+        `;
+        return;
+      }
+      const matchArray = findMatchesByName(e.target.value, cities);
+      if (!matchArray.length) {
+        suggestion.innerHTML = `
+          <li>No results found!</li>
+        `;
+        return;
+      }
+      const citiesResultHTML = matchArray.map(place => {
+        const regex = regexWord(e.target.value);
+        const cityName = place.city.replace(regex, `<span class="hl">${e.target.value}</span>`);
+        const stateName = place.state.replace(regex, `<span class="hl">${e.target.value}</span>`);
+        return `
+          <li>
+            <span class="name">${cityName}, ${stateName}</span>
+            <span class="population">${place.population}</span>
+          </li>
+        `;
+      });
+      suggestion.innerHTML = citiesResultHTML.join('');
+    }
+
+    const displayMatchesForPopulation = (e) => {
+      const suggestion = suggestions[1];
+      if (e.target.value === '') {
+        suggestion.innerHTML = `
+          <li>Filter for a city</li>
+          <li>with population over given number</li>
+        `;
+        return;
+      }
+      const matchArray = findMatchesByPopulation(e.target.value, cities);
+      if (!matchArray.length) {
+        suggestion.innerHTML = `
+          <li>No results found!</li>
+        `;
+        return;
+      }
+      const citiesResultHTML = matchArray.map(place => {
+        return `
+          <li>
+            <span class="name">${place.city}, ${place.state}</span>
+            <span class="hl">${place.population}</span>
+          </li>
+        `;
+      });
+      suggestion.innerHTML = citiesResultHTML.join('');
+    }
+
+    searchInputByName.addEventListener('change', displayMatchesForCityStateNames);
+    searchInputByName.addEventListener('keyup', displayMatchesForCityStateNames);
+
+    searchInputByPopulation.addEventListener('change', displayMatchesForPopulation);
+    searchInputByPopulation.addEventListener('keyup', displayMatchesForPopulation);
+</script>
+</body>
+</html>
